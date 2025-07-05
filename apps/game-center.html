@@ -6,57 +6,57 @@
   <script src="../script.js" defer></script>
   <title>Game Center</title>
   <style>
-    /* Outer container is resizable */
-    #outerWall {
-      resize: both;
-      overflow: auto;
+    /* ====== Resizable container with custom bottom-left handle ====== */
+    #appWindow {
+      position: relative;
       width: 100vw;
       height: 100vh;
-      border: 3px solid #444;
       box-sizing: border-box;
-    }
-
-    /* Adjust body to not conflict with outerWall sizing */
-    body {
+      border: 3px solid #444;
+      display: flex;
       background: #121212;
       color: #eee;
       font-family: monospace;
       margin: 0;
       padding: 0;
-      /* Remove fixed height and flex from body */
+      overflow: hidden;
+      user-select: none; /* prevent text selection while resizing */
+    }
+
+    /* Custom resize handle in bottom-left */
+    #resizeHandle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 0;
+      bottom: 0;
+      cursor: sw-resize; /* diagonal resize cursor from bottom-left */
+      background: #444;
+      z-index: 10;
+    }
+
+    /* Override body to not interfere */
+    body {
+      background: transparent;
+      margin: 0;
+      padding: 0;
       height: auto;
       display: block;
     }
 
-    /* Your original styles below, unchanged */
-    #outerWall > body,
+    /* Original layout styles */
     #sidebar {
       width: 200px;
       background: #1f1f1f;
       padding: 10px;
       box-shadow: 2px 0 5px #000;
-      float: left;
-      height: 100%;
-      box-sizing: border-box;
-    }
-
-    #sidebar {
-      width: 200px;
-      background: #1f1f1f;
-      padding: 10px;
-      box-shadow: 2px 0 5px #000;
-      float: left;
-      height: 100%;
-      box-sizing: border-box;
+      flex-shrink: 0;
     }
 
     #main {
-      /* flex layout for sidebar + main replaced with floats for resizing container */
-      margin-left: 210px;
+      flex: 1;
       padding: 10px;
       overflow: auto;
-      height: 100%;
-      box-sizing: border-box;
     }
 
     button, select, input[type=number] {
@@ -103,21 +103,11 @@
       font-weight: bold;
       background: #444;
     }
-
-    .resize-handle {
-      position: absolute;
-      width: 16px;
-      height: 16px;
-      right: 0;
-      bottom: 0;
-      cursor: se-resize;
-      background: #444;
-    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
-  <div id="outerWall">
+  <div id="appWindow">
     <div id="sidebar">
       <h3>Web OS</h3>
       <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
@@ -158,9 +148,12 @@
         <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
       </div>
     </div>
+    <!-- Custom resize handle -->
+    <div id="resizeHandle"></div>
   </div>
 
   <script>
+    // Show/hide app sections
     function show(id) {
       ['jsonEditor', 'texturePainter', 'jsRunner'].forEach(e => {
         document.getElementById(e).style.display = 'none';
@@ -168,6 +161,7 @@
       document.getElementById(id).style.display = 'block';
     }
 
+    // JSON editor functions
     function loadJson() {
       const json = JSON.parse(document.getElementById('jsonInput').value);
       const container = document.getElementById('jsonFields');
@@ -190,6 +184,7 @@
       document.getElementById('jsonInput').value = JSON.stringify(json, null, 2);
     }
 
+    // Painter init
     let ctx, size;
     function initPainter() {
       size = parseInt(document.getElementById('texSize').value);
@@ -216,6 +211,7 @@
       link.click();
     }
 
+    // JS/HTML sandbox files
     const files = {
       'index.html': '<!--html--><h1>Hello HTML</h1><p>This is live preview.</p>',
       'style.css': 'body { background: #fafafa; color: #333; }',
@@ -286,10 +282,66 @@ ${html.replace('<!--html-->', '').trim()}
       });
     }
 
+    // Initial setup calls
     renderTabs();
     document.getElementById('codeArea').value = files[currentFile];
     show('jsonEditor');
     initPainter();
+
+    // ======= Custom bottom-left resize handling =======
+    (function() {
+      const appWindow = document.getElementById('appWindow');
+      const handle = document.getElementById('resizeHandle');
+
+      let isResizing = false;
+      let startX, startY;
+      let startWidth, startHeight;
+
+      handle.addEventListener('mousedown', e => {
+        e.preventDefault();
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const rect = appWindow.getBoundingClientRect();
+        startWidth = rect.width;
+        startHeight = rect.height;
+
+        // Temporarily disable pointer events on iframe during resize
+        const iframe = document.getElementById('htmlPreview');
+        if (iframe) iframe.style.pointerEvents = 'none';
+
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResize);
+      });
+
+      function resize(e) {
+        if (!isResizing) return;
+
+        // Calculate delta from start
+        const dx = startX - e.clientX; // inverted because dragging left expands width
+        const dy = e.clientY - startY; // dragging down expands height
+
+        let newWidth = startWidth + dx;
+        let newHeight = startHeight + dy;
+
+        // Clamp minimum sizes
+        newWidth = Math.max(newWidth, 300);
+        newHeight = Math.max(newHeight, 300);
+
+        appWindow.style.width = newWidth + 'px';
+        appWindow.style.height = newHeight + 'px';
+      }
+
+      function stopResize(e) {
+        isResizing = false;
+        window.removeEventListener('mousemove', resize);
+        window.removeEventListener('mouseup', stopResize);
+
+        // Re-enable pointer events on iframe after resize
+        const iframe = document.getElementById('htmlPreview');
+        if (iframe) iframe.style.pointerEvents = 'auto';
+      }
+    })();
   </script>
 </body>
 </html>
