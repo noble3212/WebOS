@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Center</title>
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../script.js" defer></script>
+</head>
+<body>
+    <h2>🎮 Game Center</h2>
+    <div id="gameList" class="file-list"></div>
+    <script>
+        const games = [
+            { name: "Sample Game", url: "games/sample-game.html" }
+        ];
+
+        function loadGames() {
+            const gameList = document.getElementById('gameList');
+            games.forEach(game => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <span>${game.name}</span>
+                    <button onclick="launchGame('${game.url}')">Play</button>
+                `;
+                gameList.appendChild(div);
+            });
+        }
+
+        function launchGame(url) {
+            const win = window.open(url, '_blank');
+            win.focus();
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>
