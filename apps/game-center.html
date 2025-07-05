@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
   <title>Game Center</title>
   <style>
     body { background: #121212; color: #eee; font-family: monospace; margin: 0; padding: 0; display: flex; height: 100vh; }
@@ -13,7 +15,15 @@
     iframe { width: 100%; height: 300px; background: #fff; border: 1px solid #444; margin-top: 10px; }
     #fileTabs button { display: inline-block; width: auto; margin-right: 5px; padding: 5px 10px; background: #2a2a2a; color: #eee; border: none; cursor: pointer; }
     #fileTabs button.active { font-weight: bold; background: #444; }
-    .file-item { margin-bottom: 5px; }
+    .resize-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      right: 0;
+      bottom: 0;
+      cursor: se-resize;
+      background: #444;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <link rel="stylesheet" href="../styles.css">
@@ -25,11 +35,8 @@
     <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
     <button onclick="show('texturePainter')">🖌️ Texture Painter</button>
     <button onclick="show('jsRunner')">🧪 JS/HTML Sandbox</button>
-    <button onclick="show('gameCenter')">🎮 Game Center</button>
   </div>
-
   <div id="main">
-    <!-- JSON Editor -->
     <div id="jsonEditor" style="display:none;">
       <h2>Game Tuning JSON Editor</h2>
       <textarea id="jsonInput">{
@@ -42,21 +49,17 @@
       <button onclick="saveJson()">Save JSON</button>
     </div>
 
-    <!-- Texture Painter -->
     <div id="texturePainter" style="display:none;">
       <h2>Block Texture Painter</h2>
-      <label>Size: 
-        <select id="texSize" onchange="initPainter()">
-          <option value="16">16x16</option>
-          <option value="32">32x32</option>
-        </select>
-      </label>
+      <label>Size: <select id="texSize" onchange="initPainter()">
+        <option value="16">16x16</option>
+        <option value="32">32x32</option>
+      </select></label>
       <canvas id="paintCanvas" width="256" height="256"></canvas>
       <input type="color" id="colorPicker" value="#ff0000">
       <button onclick="downloadTexture()">Export PNG</button>
     </div>
 
-    <!-- JS Runner -->
     <div id="jsRunner" style="display:none;">
       <h2>Live Multi-File JS/HTML/CSS Sandbox</h2>
       <div id="fileTabs"></div>
@@ -66,25 +69,16 @@
       <button onclick="downloadAllFiles()">Download Project</button>
       <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
     </div>
-
-    <!-- Game Center -->
-    <div id="gameCenter" style="display:none;">
-      <h2>🎮 Game Center</h2>
-      <input type="file" id="importGame" accept=".html,.js" multiple style="display:none;">
-      <label for="importGame" class="app-icon" style="cursor:pointer;">➕ Import Game(s)</label>
-      <div id="gameList" class="file-list"></div>
-    </div>
   </div>
 
   <script>
     function show(id) {
-      ['jsonEditor', 'texturePainter', 'jsRunner', 'gameCenter'].forEach(e => {
+      ['jsonEditor', 'texturePainter', 'jsRunner'].forEach(e => {
         document.getElementById(e).style.display = 'none';
       });
       document.getElementById(id).style.display = 'block';
     }
 
-    // JSON Tool
     function loadJson() {
       const json = JSON.parse(document.getElementById('jsonInput').value);
       const container = document.getElementById('jsonFields');
@@ -107,7 +101,6 @@
       document.getElementById('jsonInput').value = JSON.stringify(json, null, 2);
     }
 
-    // Texture Painter
     let ctx, size;
     function initPainter() {
       size = parseInt(document.getElementById('texSize').value);
@@ -134,7 +127,6 @@
       link.click();
     }
 
-    // JS Runner
     const files = {
       'index.html': '<!--html--><h1>Hello HTML</h1><p>This is live preview.</p>',
       'style.css': 'body { background: #fafafa; color: #333; }',
@@ -179,13 +171,16 @@
       const output = `
 <!DOCTYPE html>
 <html>
-<head><style>${css}</style></head>
+<head>
+<style>${css}</style>
+</head>
 <body>
 ${html.replace('<!--html-->', '').trim()}
 <script>${js}<\/script>
 </body>
 </html>`;
-      document.getElementById('htmlPreview').srcdoc = output;
+      const iframe = document.getElementById('htmlPreview');
+      iframe.srcdoc = output;
     }
 
     function downloadAllFiles() {
@@ -202,60 +197,9 @@ ${html.replace('<!--html-->', '').trim()}
       });
     }
 
-    // Game Center: File Import + Play
-    const games = [
-      { name: "Sample Game", url: "games/sample-game.html", imported: false }
-    ];
-
-    function loadImportedGames() {
-      const imported = JSON.parse(localStorage.getItem('importedGames') || '[]');
-      imported.forEach(g => games.push(g));
-    }
-
-    function saveImportedGames() {
-      const imported = games.filter(g => g.imported);
-      localStorage.setItem('importedGames', JSON.stringify(imported));
-    }
-
-    document.getElementById('importGame').addEventListener('change', function(e) {
-      Array.from(e.target.files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-          const game = {
-            name: file.name,
-            url: evt.target.result,
-            imported: true
-          };
-          games.push(game);
-          saveImportedGames();
-          renderGames();
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    function renderGames() {
-      const gameList = document.getElementById('gameList');
-      gameList.innerHTML = '';
-      games.forEach(game => {
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `
-          <span>${game.name}${game.imported ? ' (imported)' : ''}</span>
-          <button onclick="launchGame('${game.url}')">Play</button>
-        `;
-        gameList.appendChild(div);
-      });
-    }
-
-    function launchGame(url) {
-      window.open(url, '_blank');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      loadImportedGames();
-      renderGames();
-    });
+    renderTabs();
+    document.getElementById('codeArea').value = files[currentFile];
+    show('jsonEditor');
   </script>
 </body>
 </html>
