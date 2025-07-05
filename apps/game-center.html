@@ -20,22 +20,36 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      user-select: none; /* prevent text selection while resizing */
+      user-select: none;
     }
 
-    /* Custom resize handle in bottom-left */
+    #appWindow.fullscreen {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999;
+      border: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #appWindow.fullscreen #resizeHandle {
+      display: none;
+    }
+
     #resizeHandle {
       position: absolute;
       width: 16px;
       height: 16px;
       left: 0;
       bottom: 0;
-      cursor: sw-resize; /* diagonal resize cursor from bottom-left */
+      cursor: sw-resize;
       background: #444;
       z-index: 10;
     }
 
-    /* Override body to not interfere */
     body {
       background: transparent;
       margin: 0;
@@ -44,7 +58,6 @@
       display: block;
     }
 
-    /* Original layout styles */
     #sidebar {
       width: 200px;
       background: #1f1f1f;
@@ -113,6 +126,7 @@
       <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
       <button onclick="show('texturePainter')">🖌️ Texture Painter</button>
       <button onclick="show('jsRunner')">🧪 JS/HTML Sandbox</button>
+      <button id="fullscreenBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
     </div>
     <div id="main">
       <div id="jsonEditor" style="display:none;">
@@ -148,12 +162,10 @@
         <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
       </div>
     </div>
-    <!-- Custom resize handle -->
     <div id="resizeHandle"></div>
   </div>
 
   <script>
-    // Show/hide app sections
     function show(id) {
       ['jsonEditor', 'texturePainter', 'jsRunner'].forEach(e => {
         document.getElementById(e).style.display = 'none';
@@ -161,7 +173,6 @@
       document.getElementById(id).style.display = 'block';
     }
 
-    // JSON editor functions
     function loadJson() {
       const json = JSON.parse(document.getElementById('jsonInput').value);
       const container = document.getElementById('jsonFields');
@@ -184,7 +195,6 @@
       document.getElementById('jsonInput').value = JSON.stringify(json, null, 2);
     }
 
-    // Painter init
     let ctx, size;
     function initPainter() {
       size = parseInt(document.getElementById('texSize').value);
@@ -211,7 +221,6 @@
       link.click();
     }
 
-    // JS/HTML sandbox files
     const files = {
       'index.html': '<!--html--><h1>Hello HTML</h1><p>This is live preview.</p>',
       'style.css': 'body { background: #fafafa; color: #333; }',
@@ -282,13 +291,18 @@ ${html.replace('<!--html-->', '').trim()}
       });
     }
 
-    // Initial setup calls
+    function toggleFullscreen() {
+      const app = document.getElementById('appWindow');
+      const btn = document.getElementById('fullscreenBtn');
+      app.classList.toggle('fullscreen');
+      btn.textContent = app.classList.contains('fullscreen') ? '🞬 Exit Fullscreen' : '⛶ Fullscreen';
+    }
+
     renderTabs();
     document.getElementById('codeArea').value = files[currentFile];
     show('jsonEditor');
     initPainter();
 
-    // ======= Custom bottom-left resize handling =======
     (function() {
       const appWindow = document.getElementById('appWindow');
       const handle = document.getElementById('resizeHandle');
@@ -306,7 +320,6 @@ ${html.replace('<!--html-->', '').trim()}
         startWidth = rect.width;
         startHeight = rect.height;
 
-        // Temporarily disable pointer events on iframe during resize
         const iframe = document.getElementById('htmlPreview');
         if (iframe) iframe.style.pointerEvents = 'none';
 
@@ -316,18 +329,12 @@ ${html.replace('<!--html-->', '').trim()}
 
       function resize(e) {
         if (!isResizing) return;
-
-        // Calculate delta from start
-        const dx = startX - e.clientX; // inverted because dragging left expands width
-        const dy = e.clientY - startY; // dragging down expands height
-
+        const dx = startX - e.clientX;
+        const dy = e.clientY - startY;
         let newWidth = startWidth + dx;
         let newHeight = startHeight + dy;
-
-        // Clamp minimum sizes
         newWidth = Math.max(newWidth, 300);
         newHeight = Math.max(newHeight, 300);
-
         appWindow.style.width = newWidth + 'px';
         appWindow.style.height = newHeight + 'px';
       }
@@ -336,13 +343,14 @@ ${html.replace('<!--html-->', '').trim()}
         isResizing = false;
         window.removeEventListener('mousemove', resize);
         window.removeEventListener('mouseup', stopResize);
-
-        // Re-enable pointer events on iframe after resize
         const iframe = document.getElementById('htmlPreview');
         if (iframe) iframe.style.pointerEvents = 'auto';
       }
     })();
   </script>
+</body>
+</html>
+
 </body>
 </html>
 
