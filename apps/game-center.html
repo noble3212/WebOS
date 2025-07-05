@@ -6,23 +6,104 @@
   <script src="../script.js" defer></script>
   <title>Game Center</title>
   <style>
-    body { background: #121212; color: #eee; font-family: monospace; margin: 0; padding: 0; display: flex; height: 100vh; }
-    #sidebar { width: 200px; background: #1f1f1f; padding: 10px; box-shadow: 2px 0 5px #000; }
-    #main { flex: 1; padding: 10px; overflow: auto; }
-    button, select, input[type=number] { margin: 5px 0; display: block; width: 100%; }
-    canvas { border: 1px solid #444; image-rendering: pixelated; }
-    textarea { width: 100%; height: 200px; background: #000; color: #0f0; font-family: monospace; }
+    /* Outer container is resizable */
+    #outerWall {
+      resize: both;
+      overflow: auto;
+      width: 100vw;
+      height: 100vh;
+      border: 3px solid #444;
+      box-sizing: border-box;
+    }
+
+    /* Adjust body to not conflict with outerWall sizing */
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: monospace;
+      margin: 0;
+      padding: 0;
+      /* Remove fixed height and flex from body */
+      height: auto;
+      display: block;
+    }
+
+    /* Your original styles below, unchanged */
+    #outerWall > body,
+    #sidebar {
+      width: 200px;
+      background: #1f1f1f;
+      padding: 10px;
+      box-shadow: 2px 0 5px #000;
+      float: left;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    #sidebar {
+      width: 200px;
+      background: #1f1f1f;
+      padding: 10px;
+      box-shadow: 2px 0 5px #000;
+      float: left;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    #main {
+      /* flex layout for sidebar + main replaced with floats for resizing container */
+      margin-left: 210px;
+      padding: 10px;
+      overflow: auto;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    button, select, input[type=number] {
+      margin: 5px 0;
+      display: block;
+      width: 100%;
+    }
+
+    canvas {
+      border: 1px solid #444;
+      image-rendering: pixelated;
+    }
+
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+    }
+
     iframe {
-  width: 100%;
-  height: 300px;
-  background: #fff;
-  border: 1px solid #444;
-  margin-top: 10px;
-  resize: both;
-  overflow: auto;
-}
-    #fileTabs button { display: inline-block; width: auto; margin-right: 5px; padding: 5px 10px; background: #2a2a2a; color: #eee; border: none; cursor: pointer; }
-    #fileTabs button.active { font-weight: bold; background: #444; }
+      width: 100%;
+      height: 300px;
+      background: #fff;
+      border: 1px solid #444;
+      margin-top: 10px;
+      resize: both;
+      overflow: auto;
+    }
+
+    #fileTabs button {
+      display: inline-block;
+      width: auto;
+      margin-right: 5px;
+      padding: 5px 10px;
+      background: #2a2a2a;
+      color: #eee;
+      border: none;
+      cursor: pointer;
+    }
+
+    #fileTabs button.active {
+      font-weight: bold;
+      background: #444;
+    }
+
     .resize-handle {
       position: absolute;
       width: 16px;
@@ -34,48 +115,48 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <link rel="stylesheet" href="../styles.css">
-  <script src="../script.js" defer></script>
 </head>
 <body>
-  <div id="sidebar">
-    <h3>Web OS</h3>
-    <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
-    <button onclick="show('texturePainter')">🖌️ Texture Painter</button>
-    <button onclick="show('jsRunner')">🧪 JS/HTML Sandbox</button>
-  </div>
-  <div id="main">
-    <div id="jsonEditor" style="display:none;">
-      <h2>Game Tuning JSON Editor</h2>
-      <textarea id="jsonInput">{
+  <div id="outerWall">
+    <div id="sidebar">
+      <h3>Web OS</h3>
+      <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
+      <button onclick="show('texturePainter')">🖌️ Texture Painter</button>
+      <button onclick="show('jsRunner')">🧪 JS/HTML Sandbox</button>
+    </div>
+    <div id="main">
+      <div id="jsonEditor" style="display:none;">
+        <h2>Game Tuning JSON Editor</h2>
+        <textarea id="jsonInput">{
   "playerSpeed": 5,
   "jumpHeight": 10,
   "health": 100
 }</textarea>
-      <button onclick="loadJson()">Load JSON</button>
-      <div id="jsonFields"></div>
-      <button onclick="saveJson()">Save JSON</button>
-    </div>
+        <button onclick="loadJson()">Load JSON</button>
+        <div id="jsonFields"></div>
+        <button onclick="saveJson()">Save JSON</button>
+      </div>
 
-    <div id="texturePainter" style="display:none;">
-      <h2>Block Texture Painter</h2>
-      <label>Size: <select id="texSize" onchange="initPainter()">
-        <option value="16">16x16</option>
-        <option value="32">32x32</option>
-      </select></label>
-      <canvas id="paintCanvas" width="256" height="256"></canvas>
-      <input type="color" id="colorPicker" value="#ff0000">
-      <button onclick="downloadTexture()">Export PNG</button>
-    </div>
+      <div id="texturePainter" style="display:none;">
+        <h2>Block Texture Painter</h2>
+        <label>Size: <select id="texSize" onchange="initPainter()">
+          <option value="16">16x16</option>
+          <option value="32">32x32</option>
+        </select></label>
+        <canvas id="paintCanvas" width="256" height="256"></canvas>
+        <input type="color" id="colorPicker" value="#ff0000">
+        <button onclick="downloadTexture()">Export PNG</button>
+      </div>
 
-    <div id="jsRunner" style="display:none;">
-      <h2>Live Multi-File JS/HTML/CSS Sandbox</h2>
-      <div id="fileTabs"></div>
-      <button onclick="addFile()">+ Add File</button>
-      <textarea id="codeArea"></textarea>
-      <button onclick="runProject()">Run</button>
-      <button onclick="downloadAllFiles()">Download Project</button>
-      <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
+      <div id="jsRunner" style="display:none;">
+        <h2>Live Multi-File JS/HTML/CSS Sandbox</h2>
+        <div id="fileTabs"></div>
+        <button onclick="addFile()">+ Add File</button>
+        <textarea id="codeArea"></textarea>
+        <button onclick="runProject()">Run</button>
+        <button onclick="downloadAllFiles()">Download Project</button>
+        <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
+      </div>
     </div>
   </div>
 
@@ -208,6 +289,7 @@ ${html.replace('<!--html-->', '').trim()}
     renderTabs();
     document.getElementById('codeArea').value = files[currentFile];
     show('jsonEditor');
+    initPainter();
   </script>
 </body>
 </html>
