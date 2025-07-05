@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Center</title>
+  <style>
+    body { background: #121212; color: #eee; font-family: monospace; margin: 0; padding: 0; display: flex; height: 100vh; }
+    #sidebar { width: 200px; background: #1f1f1f; padding: 10px; box-shadow: 2px 0 5px #000; }
+    #main { flex: 1; padding: 10px; overflow: auto; }
+    button, select, input[type=number] { margin: 5px 0; display: block; width: 100%; }
+    canvas { border: 1px solid #444; image-rendering: pixelated; }
+    textarea { width: 100%; height: 200px; background: #000; color: #0f0; font-family: monospace; }
+    iframe { width: 100%; height: 300px; background: #fff; border: 1px solid #444; margin-top: 10px; }
+    #fileTabs button { display: inline-block; width: auto; margin-right: 5px; padding: 5px 10px; background: #2a2a2a; color: #eee; border: none; cursor: pointer; }
+    #fileTabs button.active { font-weight: bold; background: #444; }
+    .file-item { margin-bottom: 5px; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="../styles.css">
+  <script src="../script.js" defer></script>
+</head>
+<body>
+  <div id="sidebar">
+    <h3>Web OS</h3>
+    <button onclick="show('jsonEditor')">🎚️ JSON Tuning</button>
+    <button onclick="show('texturePainter')">🖌️ Texture Painter</button>
+    <button onclick="show('jsRunner')">🧪 JS/HTML Sandbox</button>
+    <button onclick="show('gameCenter')">🎮 Game Center</button>
+  </div>
+
+  <div id="main">
+    <!-- JSON Editor -->
+    <div id="jsonEditor" style="display:none;">
+      <h2>Game Tuning JSON Editor</h2>
+      <textarea id="jsonInput">{
+  "playerSpeed": 5,
+  "jumpHeight": 10,
+  "health": 100
+}</textarea>
+      <button onclick="loadJson()">Load JSON</button>
+      <div id="jsonFields"></div>
+      <button onclick="saveJson()">Save JSON</button>
+    </div>
+
+    <!-- Texture Painter -->
+    <div id="texturePainter" style="display:none;">
+      <h2>Block Texture Painter</h2>
+      <label>Size: 
+        <select id="texSize" onchange="initPainter()">
+          <option value="16">16x16</option>
+          <option value="32">32x32</option>
+        </select>
+      </label>
+      <canvas id="paintCanvas" width="256" height="256"></canvas>
+      <input type="color" id="colorPicker" value="#ff0000">
+      <button onclick="downloadTexture()">Export PNG</button>
+    </div>
+
+    <!-- JS Runner -->
+    <div id="jsRunner" style="display:none;">
+      <h2>Live Multi-File JS/HTML/CSS Sandbox</h2>
+      <div id="fileTabs"></div>
+      <button onclick="addFile()">+ Add File</button>
+      <textarea id="codeArea"></textarea>
+      <button onclick="runProject()">Run</button>
+      <button onclick="downloadAllFiles()">Download Project</button>
+      <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
+    </div>
+
+    <!-- Game Center -->
+    <div id="gameCenter" style="display:none;">
+      <h2>🎮 Game Center</h2>
+      <input type="file" id="importGame" accept=".html,.js" multiple style="display:none;">
+      <label for="importGame" class="app-icon" style="cursor:pointer;">➕ Import Game(s)</label>
+      <div id="gameList" class="file-list"></div>
+    </div>
+  </div>
+
+  <script>
+    function show(id) {
+      ['jsonEditor', 'texturePainter', 'jsRunner', 'gameCenter'].forEach(e => {
+        document.getElementById(e).style.display = 'none';
+      });
+      document.getElementById(id).style.display = 'block';
+    }
+
+    // JSON Tool
+    function loadJson() {
+      const json = JSON.parse(document.getElementById('jsonInput').value);
+      const container = document.getElementById('jsonFields');
+      container.innerHTML = '';
+      for (let key in json) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.value = json[key];
+        input.dataset.key = key;
+        container.append(`${key}: `, input, document.createElement('br'));
+      }
+    }
+
+    function saveJson() {
+      const inputs = document.querySelectorAll('#jsonFields input');
+      const json = {};
+      inputs.forEach(input => {
+        json[input.dataset.key] = parseFloat(input.value);
+      });
+      document.getElementById('jsonInput').value = JSON.stringify(json, null, 2);
+    }
+
+    // Texture Painter
+    let ctx, size;
+    function initPainter() {
+      size = parseInt(document.getElementById('texSize').value);
+      const canvas = document.getElementById('paintCanvas');
+      canvas.width = canvas.height = size * 16;
+      ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.getElementById('paintCanvas').addEventListener('click', e => {
+      const rect = e.target.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / 16);
+      const y = Math.floor((e.clientY - rect.top) / 16);
+      ctx.fillStyle = document.getElementById('colorPicker').value;
+      ctx.fillRect(x * 16, y * 16, 16, 16);
+    });
+
+    function downloadTexture() {
+      const link = document.createElement('a');
+      link.download = 'texture.png';
+      link.href = document.getElementById('paintCanvas').toDataURL();
+      link.click();
+    }
+
+    // JS Runner
+    const files = {
+      'index.html': '<!--html--><h1>Hello HTML</h1><p>This is live preview.</p>',
+      'style.css': 'body { background: #fafafa; color: #333; }',
+      'script.js': 'console.log("JS Running...")'
+    };
+    let currentFile = 'index.html';
+
+    function renderTabs() {
+      const tabBar = document.getElementById('fileTabs');
+      tabBar.innerHTML = '';
+      for (let fileName in files) {
+        const btn = document.createElement('button');
+        btn.textContent = fileName;
+        btn.className = fileName === currentFile ? 'active' : '';
+        btn.onclick = () => switchFile(fileName);
+        tabBar.appendChild(btn);
+      }
+    }
+
+    function switchFile(fileName) {
+      files[currentFile] = document.getElementById('codeArea').value;
+      currentFile = fileName;
+      document.getElementById('codeArea').value = files[fileName];
+      renderTabs();
+    }
+
+    function addFile() {
+      const name = prompt('Enter file name (e.g. new.html, style2.css, app.js):');
+      if (!name || files[name]) return;
+      files[name] = '';
+      switchFile(name);
+    }
+
+    function runProject() {
+      files[currentFile] = document.getElementById('codeArea').value;
+      let html = files['index.html'] || '';
+      let css = '', js = '';
+      for (let name in files) {
+        if (name.endsWith('.css')) css += '\n' + files[name];
+        if (name.endsWith('.js')) js += '\n' + files[name];
+      }
+      const output = `
+<!DOCTYPE html>
+<html>
+<head><style>${css}</style></head>
+<body>
+${html.replace('<!--html-->', '').trim()}
+<script>${js}<\/script>
+</body>
+</html>`;
+      document.getElementById('htmlPreview').srcdoc = output;
+    }
+
+    function downloadAllFiles() {
+      files[currentFile] = document.getElementById('codeArea').value;
+      const zip = new JSZip();
+      for (let name in files) {
+        zip.file(name, files[name]);
+      }
+      zip.generateAsync({ type: "blob" }).then(content => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(content);
+        a.download = "tiny-game-project.zip";
+        a.click();
+      });
+    }
+
+    // Game Center: File Import + Play
+    const games = [
+      { name: "Sample Game", url: "games/sample-game.html", imported: false }
+    ];
+
+    function loadImportedGames() {
+      const imported = JSON.parse(localStorage.getItem('importedGames') || '[]');
+      imported.forEach(g => games.push(g));
+    }
+
+    function saveImportedGames() {
+      const imported = games.filter(g => g.imported);
+      localStorage.setItem('importedGames', JSON.stringify(imported));
+    }
+
+    document.getElementById('importGame').addEventListener('change', function(e) {
+      Array.from(e.target.files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const game = {
+            name: file.name,
+            url: evt.target.result,
+            imported: true
+          };
+          games.push(game);
+          saveImportedGames();
+          renderGames();
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    function renderGames() {
+      const gameList = document.getElementById('gameList');
+      gameList.innerHTML = '';
+      games.forEach(game => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `
+          <span>${game.name}${game.imported ? ' (imported)' : ''}</span>
+          <button onclick="launchGame('${game.url}')">Play</button>
+        `;
+        gameList.appendChild(div);
+      });
+    }
+
+    function launchGame(url) {
+      window.open(url, '_blank');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadImportedGames();
+      renderGames();
+    });
+  </script>
+</body>
+</html>
