@@ -8,31 +8,66 @@
 </head>
 <body>
     <h2>🎮 Game Center</h2>
+    <input type="file" id="importGame" accept=".html,.js" multiple style="display:none;">
+    <label for="importGame" class="app-icon" style="cursor:pointer;">➕ Import Game(s)</label>
     <div id="gameList" class="file-list"></div>
     <script>
+        // Preloaded games
         const games = [
-            { name: "Sample Game", url: "games/sample-game.html" }
+            { name: "Sample Game", url: "games/sample-game.html", imported: false }
         ];
 
-        function loadGames() {
+        // Load imported games from localStorage
+        function loadImportedGames() {
+            const imported = JSON.parse(localStorage.getItem('importedGames') || '[]');
+            imported.forEach(g => games.push(g));
+        }
+
+        // Save imported games to localStorage
+        function saveImportedGames() {
+            const imported = games.filter(g => g.imported);
+            localStorage.setItem('importedGames', JSON.stringify(imported));
+        }
+
+        // Handle file import
+        document.getElementById('importGame').addEventListener('change', function(e) {
+            Array.from(e.target.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const game = {
+                        name: file.name,
+                        url: evt.target.result,
+                        imported: true
+                    };
+                    games.push(game);
+                    saveImportedGames();
+                    renderGames();
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        function renderGames() {
             const gameList = document.getElementById('gameList');
+            gameList.innerHTML = '';
             games.forEach(game => {
                 const div = document.createElement('div');
                 div.className = 'file-item';
                 div.innerHTML = `
-                    <span>${game.name}</span>
+                    <span>${game.name}${game.imported ? ' (imported)' : ''}</span>
                     <button onclick="launchGame('${game.url}')">Play</button>
                 `;
                 gameList.appendChild(div);
             });
         }
 
+        // Launch game in a new tab
         function launchGame(url) {
-            const win = window.open(url, '_blank');
-            win.focus();
+            window.open(url, '_blank');
         }
 
-        loadGames();
+        loadImportedGames();
+        renderGames();
     </script>
 </body>
 </html>
