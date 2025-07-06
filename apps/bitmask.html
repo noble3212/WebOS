@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Advanced Bitmask Tool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #222;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 520px;
+      margin: 40px auto;
+      background: #333;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 4px 16px #0006;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .toggle-btn {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 8px 18px;
+      font-size: 1em;
+      border-radius: 6px;
+      border: none;
+      background: #444;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-btn:hover {
+      background: #666;
+    }
+    .label {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 1em;
+      color: #ccc;
+    }
+    .bits {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+    .bit {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #444;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1.1em;
+      user-select: none;
+      border: 2px solid #555;
+      transition: background 0.2s, border 0.2s;
+    }
+    .bit.on {
+      background: #4caf50;
+      border: 2px solid #81c784;
+      color: #fff;
+    }
+    .bit.off {
+      background: #222;
+      border: 2px solid #555;
+      color: #888;
+    }
+    .result {
+      text-align: center;
+      font-size: 1.2em;
+      margin-top: 10px;
+      color: #ffd700;
+    }
+    /* Visual mode grid */
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 28px);
+      grid-template-rows: repeat(8, 28px);
+      gap: 4px;
+      justify-content: center;
+      margin: 0 auto 16px auto;
+      background: #222;
+      padding: 8px;
+      border-radius: 8px;
+      width: max-content;
+    }
+    .pixel {
+      width: 28px;
+      height: 28px;
+      background: #444;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid #555;
+      transition: background 0.2s, border 0.2s;
+    }
+    .pixel.on {
+      background: #ffd700;
+      border: 2px solid #fff176;
+    }
+    .pixel.off {
+      background: #222;
+      border: 2px solid #555;
+    }
+    .row-bits {
+      color: #fff;
+      font-size: 0.95em;
+      margin-left: 10px;
+      font-family: monospace;
+      vertical-align: middle;
+    }
+    .visual-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .visual-label {
+      text-align: center;
+      margin-bottom: 8px;
+      font-size: 1em;
+      color: #ccc;
+    }
+    .visual-output {
+      text-align: center;
+      color: #ffd700;
+      font-size: 1.1em;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Advanced Bitmask Tool</h2>
+    <button class="toggle-btn" id="modeToggle">Switch to Visual Mode</button>
+    <div id="classicMode">
+      <div class="label">Enter a number:</div>
+      <input type="number" id="numberInput" min="0" max="4294967295" value="0">
+      <div class="label">Toggle bits:</div>
+      <div class="bits" id="bits"></div>
+      <div class="result" id="result"></div>
+    </div>
+    <div id="visualMode" style="display:none;">
+      <div class="visual-label">Draw your bitmask (8x8 grid):</div>
+      <div id="visualGrid"></div>
+      <div id="visualOutput"></div>
+    </div>
+  </div>
+  <script>
+    // --- Classic Mode ---
+    const numberInput = document.getElementById('numberInput');
+    const bitsDiv = document.getElementById('bits');
+    const resultDiv = document.getElementById('result');
+    const BIT_COUNT = 16;
+
+    function updateBitsFromNumber() {
+      let value = parseInt(numberInput.value, 10) || 0;
+      bitsDiv.innerHTML = '';
+      for (let i = BIT_COUNT - 1; i >= 0; i--) {
+        const bitOn = (value & (1 << i)) !== 0;
+        const bit = document.createElement('div');
+        bit.className = 'bit ' + (bitOn ? 'on' : 'off');
+        bit.textContent = bitOn ? '1' : '0';
+        bit.title = 'Bit ' + i;
+        bit.onclick = () => toggleBit(i);
+        bitsDiv.appendChild(bit);
+      }
+      updateResult(value);
+    }
+
+    function toggleBit(bitIndex) {
+      let value = parseInt(numberInput.value, 10) || 0;
+      value ^= (1 << bitIndex);
+      numberInput.value = value;
+      updateBitsFromNumber();
+    }
+
+    function updateResult(value) {
+      resultDiv.textContent = `Decimal: ${value} | Hex: 0x${value.toString(16).toUpperCase()} | Binary: ${value.toString(2).padStart(BIT_COUNT, '0')}`;
+    }
+
+    numberInput.addEventListener('input', updateBitsFromNumber);
+
+    // --- Visual Mode ---
+    const visualGrid = document.getElementById('visualGrid');
+    const visualOutput = document.getElementById('visualOutput');
+    const GRID_SIZE = 8;
+    let visualBits = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill(0));
+
+    function renderVisualGrid() {
+      visualGrid.innerHTML = '';
+      for (let row = 0; row < GRID_SIZE; row++) {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'visual-row';
+        const gridRow = document.createElement('div');
+        gridRow.className = 'visual-grid';
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const pixel = document.createElement('div');
+          pixel.className = 'pixel ' + (visualBits[row][col] ? 'on' : 'off');
+          pixel.title = `Row ${row}, Col ${col}`;
+          pixel.onclick = () => {
+            visualBits[row][col] = visualBits[row][col] ? 0 : 1;
+            renderVisualGrid();
+          };
+          gridRow.appendChild(pixel);
+        }
+        rowDiv.appendChild(gridRow);
+
+        // Show bitmask value for this row
+        const rowValue = visualBits[row].reduce((acc, bit, idx) => acc | (bit << (GRID_SIZE - 1 - idx)), 0);
+        const rowBits = visualBits[row].join('');
+        const rowBitsStr = rowBits.replace(/0/g, '·').replace(/1/g, '█');
+        const rowMask = `Bin: ${visualBits[row].join('')} | Dec: ${rowValue} | Hex: 0x${rowValue.toString(16).toUpperCase()}`;
+        const rowBitsSpan = document.createElement('span');
+        rowBitsSpan.className = 'row-bits';
+        rowBitsSpan.textContent = rowMask;
+        rowDiv.appendChild(rowBitsSpan);
+
+        visualGrid.appendChild(rowDiv);
+      }
+      // Output all rows as array
+      const arr = visualBits.map(row => '0x' + row.reduce((acc, bit, idx) => acc | (bit << (GRID_SIZE - 1 - idx)), 0).toString(16).toUpperCase());
+      visualOutput.innerHTML = `<div class="visual-output">Bitmask Array: [${arr.join(', ')}]</div>`;
+    }
+
+    // --- Mode Toggle ---
+    const modeToggle = document.getElementById('modeToggle');
+    const classicMode = document.getElementById('classicMode');
+    const visualMode = document.getElementById('visualMode');
+    let isVisual = false;
+
+    modeToggle.onclick = () => {
+      isVisual = !isVisual;
+      classicMode.style.display = isVisual ? 'none' : '';
+      visualMode.style.display = isVisual ? '' : 'none';
+      modeToggle.textContent = isVisual ? 'Switch to Classic Mode' : 'Switch to Visual Mode';
+      if (isVisual) renderVisualGrid();
+    };
+
+    // Initialize
+    updateBitsFromNumber();
+  </script>
+</body>
+</html>
