@@ -116,6 +116,47 @@
       font-weight: bold;
       background: #444;
     }
+
+    /* === Game Center Styles === */
+    .app-icon {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      background: #2a2a2a;
+      color: #eee;
+      text-align: center;
+      line-height: 40px;
+      border-radius: 5px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .file-list {
+      margin-top: 10px;
+    }
+
+    .file-item {
+      background: #2a2a2a;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-item button {
+      background: #444;
+      color: #eee;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .file-item button:hover {
+      background: #666;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -161,6 +202,15 @@
         <button onclick="downloadAllFiles()">Download Project</button>
         <iframe id="htmlPreview" sandbox="allow-scripts"></iframe>
       </div>
+
+      <!-- === Game Center Section === -->
+      <div id="gameCenter">
+        <h2>🎮 Game Center</h2>
+        <input type="file" id="importGame" accept=".html,.js" multiple style="display:none;">
+        <label for="importGame" class="app-icon" style="cursor:pointer;">➕ Import Game(s)</label>
+        <div id="gameList" class="file-list"></div>
+      </div>
+      <!-- === End Game Center Section === -->
     </div>
     <div id="resizeHandle"></div>
   </div>
@@ -347,10 +397,69 @@ ${html.replace('<!--html-->', '').trim()}
         if (iframe) iframe.style.pointerEvents = 'auto';
       }
     })();
+
+    // --- Game Center Script (self-contained) ---
+    (function() {
+      const games = [];
+
+      // Load games from manifest
+      fetch('games/games.json')
+        .then(res => res.json())
+        .then(list => {
+          list.forEach(g => games.push({ ...g, imported: false }));
+          loadImportedGames();
+          renderGames();
+        })
+        .catch(() => {
+          loadImportedGames();
+          renderGames();
+        });
+
+      // Load imported games from localStorage
+      function loadImportedGames() {
+        const imported = JSON.parse(localStorage.getItem('importedGames') || '[]');
+        imported.forEach(g => games.push(g));
+      }
+
+      // Save imported games to localStorage
+      function saveImportedGames() {
+        const imported = games.filter(g => g.imported);
+        localStorage.setItem('importedGames', JSON.stringify(imported));
+      }
+
+      // Handle file import
+      document.getElementById('importGame').addEventListener('change', function(e) {
+        Array.from(e.target.files).forEach(file => {
+          const reader = new FileReader();
+          reader.onload = function(evt) {
+            const game = {
+              name: file.name,
+              url: evt.target.result,
+              imported: true
+            };
+            games.push(game);
+            saveImportedGames();
+            renderGames();
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      function renderGames() {
+        const gameList = document.getElementById('gameList');
+        gameList.innerHTML = '';
+        games.forEach(game => {
+          const div = document.createElement('div');
+          div.className = 'file-item';
+          div.innerHTML = `
+            <span>${game.name}${game.imported ? ' (imported)' : ''}</span>
+            <button onclick="window.open('${game.url}', '_blank')">Play</button>
+          `;
+          gameList.appendChild(div);
+        });
+      }
+    })();
+    // --- End Game Center Script ---
   </script>
 </body>
 </html>
-
-</body>
-</html>
-
