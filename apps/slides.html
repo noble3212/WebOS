@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Slide Editor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+    #toolbar {
+      background: #f0f0f0;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    #slideContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    .slide {
+      width: 960px;
+      height: 540px;
+      background: white;
+      border: 2px solid #ccc;
+      margin: 10px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .slide[contenteditable="true"] {
+      outline: none;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toolbar">
+    <button onclick="addSlide()">Add Slide</button>
+    <button onclick="prevSlide()">Previous Slide</button>
+    <button onclick="nextSlide()">Next Slide</button>
+    <button onclick="format('bold')">Bold</button>
+    <button onclick="format('italic')">Italic</button>
+    <button onclick="format('underline')">Underline</button>
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="exportSlides()">Export Slides to PDF</button>
+  </div>
+
+  <div id="slideContainer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const slideContainer = document.getElementById('slideContainer');
+    let slides = [];
+    let currentSlideIndex = 0;
+
+    function createSlide() {
+      const slide = document.createElement('div');
+      slide.className = 'slide';
+      slide.contentEditable = true;
+      slide.innerHTML = `<h2>Slide ${slides.length + 1}</h2>`;
+      return slide;
+    }
+
+    function addSlide() {
+      const newSlide = createSlide();
+      slides.push(newSlide);
+      showSlide(slides.length - 1);
+    }
+
+    function showSlide(index) {
+      slideContainer.innerHTML = '';
+      if (slides[index]) {
+        slideContainer.appendChild(slides[index]);
+        currentSlideIndex = index;
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlideIndex > 0) {
+        showSlide(currentSlideIndex - 1);
+      }
+    }
+
+    function nextSlide() {
+      if (currentSlideIndex < slides.length - 1) {
+        showSlide(currentSlideIndex + 1);
+      }
+    }
+
+    function format(command) {
+      document.execCommand(command, false, null);
+    }
+
+    document.getElementById('imageInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.maxWidth = '100%';
+        img.style.display = 'block';
+        const slide = slides[currentSlideIndex];
+        if (slide) slide.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    async function exportSlides() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('landscape', 'pt', [960, 540]);
+
+      for (let i = 0; i < slides.length; i++) {
+        if (i > 0) doc.addPage();
+        await doc.html(slides[i], {
+          x: 0,
+          y: 0,
+          html2canvas: { scale: 1 }
+        });
+      }
+
+      doc.save('slides.pdf');
+    }
+
+    // Initialize with one slide
+    addSlide();
+  </script>
+
+</body>
+</html>
