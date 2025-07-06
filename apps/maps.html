@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CSV Data to Map</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    crossorigin=""
+  />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+      background: #f9f9f9;
+    }
+    #map {
+      height: 60vh;
+      width: 90vw;
+      max-width: 1000px;
+      min-width: 300px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      display: block;
+    }
+    #fileInput {
+      display: block;
+      margin: 0 auto;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h2 style="text-align:center;">CSV Data to Map Visualization</h2>
+
+<input type="file" id="fileInput" accept=".csv" />
+
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+<script>
+  let map, markersGroup;
+  function initMap() {
+    if (map) return;
+    map = L.map('map').setView([20, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+    }).addTo(map);
+    markersGroup = L.layerGroup().addTo(map);
+  }
+
+  initMap();
+
+  document.getElementById('fileInput').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        plotDataOnMap(results.data);
+      },
+      error: function(err) {
+        alert("Error parsing CSV: " + err.message);
+      }
+    });
+  });
+
+  function plotDataOnMap(data) {
+    markersGroup.clearLayers();
+
+    let points = [];
+
+    data.forEach(row => {
+      const lat = parseFloat(row['Latitude']);
+      const lon = parseFloat(row['Longitude']);
+      const name = row['Name'] || 'Unknown';
+
+      if (!isNaN(lat) && !isNaN(lon)) {
+        L.marker([lat, lon]).addTo(markersGroup)
+          .bindPopup(`<b>${name}</b><br>Lat: ${lat}<br>Lon: ${lon}`);
+        points.push([lat, lon]);
+      }
+    });
+
+    if (points.length === 0) {
+      alert('No valid Latitude/Longitude found in CSV.');
+      return;
+    }
+
+    // Use marker group bounds for zooming
+    const bounds = markersGroup.getBounds();
+    if (points.length === 1 || !bounds.isValid()) {
+      map.setView(points[0], 10);
+    } else {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+
+    setTimeout(() => map.invalidateSize(), 200);
+  }
+
+  window.addEventListener('resize', () => {
+    if (map) map.invalidateSize();
+  });
+</script>
+
+</body>
+</html>

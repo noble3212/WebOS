@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Office Document Creator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    #toolbar {
+      background: #f0f0f0;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    #editor {
+      padding: 20px;
+      min-height: 600px;
+      border: 1px solid #ccc;
+      margin: 10px;
+      background: white;
+    }
+    select, input[type="file"] {
+      padding: 5px;
+    }
+    button {
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toolbar">
+    <select id="fontName">
+      <option value="Arial">Arial</option>
+      <option value="Times New Roman">Times New Roman</option>
+      <option value="Courier New">Courier New</option>
+      <option value="Georgia">Georgia</option>
+    </select>
+
+    <select id="fontSize">
+      <option value="3">12pt</option>
+      <option value="4">14pt</option>
+      <option value="5">18pt</option>
+      <option value="6">24pt</option>
+      <option value="7">32pt</option>
+    </select>
+
+    <button onclick="format('bold')">Bold</button>
+    <button onclick="format('italic')">Italic</button>
+    <button onclick="format('underline')">Underline</button>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <input type="file" id="textInput" accept=".txt">
+
+    <button onclick="exportPDF()">Export as PDF</button>
+  </div>
+
+  <div id="editor" contenteditable="true">
+    <h2>Start writing your document here...</h2>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    document.getElementById('fontName').addEventListener('change', function () {
+      document.execCommand('fontName', false, this.value);
+    });
+
+    document.getElementById('fontSize').addEventListener('change', function () {
+      document.execCommand('fontSize', false, this.value);
+    });
+
+    function format(command) {
+      document.execCommand(command, false, null);
+    }
+
+    document.getElementById('imageInput').addEventListener('change', function () {
+      const file = this.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.maxWidth = '100%';
+        img.style.display = 'block';
+        document.getElementById('editor').appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('textInput').addEventListener('change', function () {
+      const file = this.files[0];
+      if (file && file.type === "text/plain") {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const textNode = document.createElement('pre');
+          textNode.textContent = e.target.result;
+          document.getElementById('editor').appendChild(textNode);
+        };
+        reader.readAsText(file);
+      } else {
+        alert("Please upload a valid .txt file.");
+      }
+    });
+
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'a4');
+      const editor = document.getElementById('editor');
+
+      await doc.html(editor, {
+        callback: function (pdf) {
+          pdf.save('document.pdf');
+        },
+        margin: [20, 20, 20, 20],
+        autoPaging: true,
+        html2canvas: { scale: 0.5 }
+      });
+    }
+  </script>
+
+</body>
+</html>
