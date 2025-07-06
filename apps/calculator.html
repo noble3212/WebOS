@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculator</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <div class="calc-container">
+    <input id="calcDisplay" class="calc-display" type="text" value="0" readonly>
+    <div class="calc-buttons">
+      <button onclick="press('7')">7</button>
+      <button onclick="press('8')">8</button>
+      <button onclick="press('9')">9</button>
+      <button onclick="press('/')">÷</button>
+      <button onclick="press('4')">4</button>
+      <button onclick="press('5')">5</button>
+      <button onclick="press('6')">6</button>
+      <button onclick="press('*')">×</button>
+      <button onclick="press('1')">1</button>
+      <button onclick="press('2')">2</button>
+      <button onclick="press('3')">3</button>
+      <button onclick="press('-')">−</button>
+      <button onclick="press('0')">0</button>
+      <button onclick="press('.')">.</button>
+      <button onclick="calculate()">=</button>
+      <button onclick="press('+')">+</button>
+      <button onclick="clearDisplay()" style="grid-column: span 4; background:#444;">C</button>
+    </div>
+  </div>
+  <script>
+    let current = '';
+    function press(val) {
+      if (current === '0' && val !== '.') current = '';
+      current += val;
+      document.getElementById('calcDisplay').value = current;
+    }
+    function calculate() {
+      try {
+        current = eval(current.replace(/÷/g, '/').replace(/×/g, '*')).toString();
+      } catch {
+        current = 'Error';
+      }
+      document.getElementById('calcDisplay').value = current;
+    }
+    function clearDisplay() {
+      current = '';
+      document.getElementById('calcDisplay').value = '0';
+    }
+  </script>
+</body>
+</html>
