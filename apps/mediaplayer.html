@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Media Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .mediaplayer-container {
+            max-width: 400px;
+            margin: 40px auto;
+            background: #333;
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 4px 16px #0006;
+        }
+        .mediaplayer-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        input[type="file"] {
+            display: block;
+            margin: 0 auto 16px auto;
+        }
+        audio, video {
+            width: 100%;
+            margin-top: 10px;
+            background: #111;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mediaplayer-container">
+        <h2>Media Player</h2>
+        <input type="file" id="mediaFile" accept="audio/*,video/*">
+        <audio id="audioPlayer" controls style="display:none;"></audio>
+        <video id="videoPlayer" controls style="display:none;" height="240"></video>
+        <div class="controls">
+            <button onclick="playMedia()">Play</button>
+            <button onclick="pauseMedia()">Pause</button>
+            <button onclick="stopMedia()">Stop</button>
+        </div>
+    </div>
+    <script>
+        const mediaFile = document.getElementById('mediaFile');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const videoPlayer = document.getElementById('videoPlayer');
+        let currentType = null;
+
+        mediaFile.addEventListener('change', function() {
+            const file = this.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            if (file.type.startsWith('audio/')) {
+                audioPlayer.src = url;
+                audioPlayer.style.display = '';
+                videoPlayer.style.display = 'none';
+                currentType = 'audio';
+            } else if (file.type.startsWith('video/')) {
+                videoPlayer.src = url;
+                videoPlayer.style.display = '';
+                audioPlayer.style.display = 'none';
+                currentType = 'video';
+            }
+        });
+
+        function playMedia() {
+            if (currentType === 'audio') audioPlayer.play();
+            if (currentType === 'video') videoPlayer.play();
+        }
+        function pauseMedia() {
+            if (currentType === 'audio') audioPlayer.pause();
+            if (currentType === 'video') videoPlayer.pause();
+        }
+        function stopMedia() {
+            if (currentType === 'audio') {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            if (currentType === 'video') {
+                videoPlayer.pause();
+                videoPlayer.currentTime = 0;
+            }
+        }
+    </script>
+</body>
