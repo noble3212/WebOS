@@ -429,20 +429,50 @@ ${html.replace('<!--html-->', '').trim()}
 
       // Handle file import
       document.getElementById('importGame').addEventListener('change', function(e) {
-        Array.from(e.target.files).forEach(file => {
-          const reader = new FileReader();
-          reader.onload = function(evt) {
-            const game = {
-              name: file.name,
-              url: evt.target.result,
-              imported: true
+        const filesArr = Array.from(e.target.files);
+        if (filesArr.length > 1) {
+          // Multi-file project import: load into sandbox
+          let pending = filesArr.length;
+          const tempFiles = {};
+          filesArr.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+              tempFiles[file.name] = evt.target.result;
+              pending--;
+              if (pending === 0) {
+                // Map files to sandbox
+                for (let name in tempFiles) {
+                  if (name.endsWith('.html')) files['index.html'] = tempFiles[name];
+                  else if (name.endsWith('.js')) files['script.js'] = tempFiles[name];
+                  else if (name.endsWith('.css')) files['style.css'] = tempFiles[name];
+                  else files[name] = tempFiles[name];
+                }
+                // Switch to sandbox and show HTML
+                currentFile = 'index.html';
+                document.getElementById('codeArea').value = files['index.html'] || '';
+                renderTabs();
+                show('jsRunner');
+              }
             };
-            games.push(game);
-            saveImportedGames();
-            renderGames();
-          };
-          reader.readAsDataURL(file);
-        });
+            reader.readAsText(file);
+          });
+        } else {
+          // Single file: treat as a game
+          filesArr.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+              const game = {
+                name: file.name,
+                url: evt.target.result,
+                imported: true
+              };
+              games.push(game);
+              saveImportedGames();
+              renderGames();
+            };
+            reader.readAsDataURL(file);
+          });
+        }
       });
 
       function renderGames() {
