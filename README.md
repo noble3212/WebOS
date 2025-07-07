@@ -1,7 +1,7 @@
 # webOS Application
 
 ## Overview
-This project is a webOS application that simulates a desktop environment in the browser. It allows users to launch various applications, including a file explorer and a game center, with movable windows and local caching capabilities.
+This project is a webOS application that simulates a desktop environment in the browser. It allows users to launch various applications, including a file explorer and a game center, with movable windows and local caching capabilities. This will now prob act as a hub for my apps- for now until i need better backends-
 
 ## Project Structure
 ```
