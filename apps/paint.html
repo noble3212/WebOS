@@ -18,5 +18,41 @@
         <div id="resize-control"></div>
         <div id="text-editor-window"></div>
     </div>
+    <script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const colorPicker = document.createElement('input');
+colorPicker.type = 'color';
+colorPicker.value = '#ff0000';
+document.getElementById('color-picker').appendChild(colorPicker);
+
+let drawing = false;
+let pixelSize = 16; // Change for finer/coarser pixel art
+canvas.width = 512;
+canvas.height = 512;
+ctx.imageSmoothingEnabled = false;
+
+// Fill background white
+ctx.fillStyle = '#fff';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+canvas.addEventListener('mousedown', (e) => {
+  drawing = true;
+  drawPixel(e);
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (drawing) drawPixel(e);
+});
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+
+function drawPixel(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / pixelSize) * pixelSize;
+  const y = Math.floor((e.clientY - rect.top) / pixelSize) * pixelSize;
+  ctx.fillStyle = colorPicker.value;
+  ctx.fillRect(x, y, pixelSize, pixelSize);
+}
+</script>
 </body>
 </html>
