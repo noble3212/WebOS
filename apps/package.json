@@ -1,0 +1,29 @@
+{
+  "name": "web-paint-app",
+  "version": "1.0.0",
+  "description": "A web-based painting application with features like color adjustment, zooming, image resizing, and text editing.",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "live-server src",
+    "build": "webpack --mode production",
+    "test": "jest"
+  },
+  "keywords": [
+    "painting",
+    "canvas",
+    "web-app",
+    "image-editing"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "jquery": "^3.6.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1",
+    "jest": "^27.4.5",
+    "live-server": "^1.2.1"
+  }
+}
