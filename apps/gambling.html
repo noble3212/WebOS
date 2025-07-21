@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VSCode Loot Box Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+    }
+
+    #container {
+      display: flex;
+      height: 100vh;
+    }
+
+    #sidebar {
+      width: 50px;
+      background-color: #252526;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px;
+    }
+
+    .icon {
+      width: 30px;
+      height: 30px;
+      margin: 10px 0;
+      background-color: #3c3c3c;
+      border-radius: 5px;
+    }
+
+    #editor {
+      flex: 1;
+      background-color: #1e1e1e;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #top-bar {
+      background-color: #333333;
+      height: 30px;
+      margin-bottom: 10px;
+    }
+
+    #main-content {
+      flex: 1;
+      background-color: #1e1e1e;
+      border: 1px solid #3c3c3c;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .loot-box-button {
+      background-color: #007acc;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 5px 5px 0;
+    }
+
+    .loot-result {
+      font-size: 20px;
+      height: 30px;
+      margin-top: 20px;
+    }
+
+    .spinning {
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .common { color: gray; }
+    .rare { color: #4fc3f7; }
+    .epic { color: #ba68c8; }
+    .legendary { color: #ffb300; }
+
+    h3 {
+      margin-top: 20px;
+      border-bottom: 1px solid #3c3c3c;
+      padding-bottom: 5px;
+    }
+
+    ul {
+      list-style: none;
+      padding-left: 10px;
+    }
+
+    li {
+      padding: 2px 0;
+    }
+
+    #coin-display {
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+
+    .shop-buttons {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    .loot-box-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .export-controls {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="sidebar">
+      <div class="icon"></div>
+      <div class="icon"></div>
+    </div>
+    <div id="editor">
+      <div id="top-bar"></div>
+      <div id="main-content">
+        <h2>🎁 VSCode Loot Box Game</h2>
+
+        <div id="coin-display">💰 Coins: <span id="coin-count">0</span></div>
+
+        <div class="shop-buttons">
+          <button class="loot-box-button" onclick="openLootBox('basic')">🟦 Basic Box (10 coins)</button>
+          <button class="loot-box-button" onclick="openLootBox('pro')">🟩 Pro Box (40 coins)</button>
+          <button class="loot-box-button" onclick="openLootBox('elite')">🟨 Elite Box (80 coins)</button>
+        </div>
+
+        <div id="loot-result" class="loot-result"></div>
+
+        <div id="inventory">
+          <h3>🎒 Inventory</h3>
+          <ul id="inventory-list"></ul>
+          <div class="export-controls">
+            <button class="loot-box-button" onclick="exportInventory()">💾 Export</button>
+            <input type="file" id="import-file" style="display:none" onchange="importInventory(event)">
+            <button class="loot-box-button" onclick="document.getElementById('import-file').click()">📁 Import</button>
+          </div>
+        </div>
+
+        <div id="leaderboard">
+          <h3>🏆 Leaderboard</h3>
+          <ul id="leaderboard-list"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const boxes = {
+      basic: { cost: 10, chances: [0.5, 0.3, 0.15, 0.05] },
+      pro:   { cost: 40, chances: [0.25, 0.35, 0.3, 0.1] },
+      elite: { cost: 80, chances: [0.1, 0.2, 0.4, 0.3] }
+    };
+
+    const items = [
+      { name: "Old Extension", rarity: "common" },
+      { name: "Deprecated Syntax Highlighter", rarity: "common" },
+      { name: "Theme Pack", rarity: "rare" },
+      { name: "Snippets Bundle", rarity: "rare" },
+      { name: "Custom Icon Set", rarity: "epic" },
+      { name: "Animated Cursor Pack", rarity: "epic" },
+      { name: "Premium Plugin", rarity: "legendary" },
+      { name: "AI Code Assistant", rarity: "legendary" }
+    ];
+
+    const sellValues = {
+      "Old Extension": 2,
+      "Deprecated Syntax Highlighter": 3,
+      "Theme Pack": 10,
+      "Snippets Bundle": 12,
+      "Custom Icon Set": 20,
+      "Animated Cursor Pack": 25,
+      "Premium Plugin": 50,
+      "AI Code Assistant": 60
+    };
+
+    let username = localStorage.getItem("username");
+    if (!username) {
+      username = prompt("Enter your name:") || "Guest";
+      localStorage.setItem("username", username);
+    }
+
+    function getCoins() {
+      return parseInt(localStorage.getItem("coins") || "100");
+    }
+
+    function setCoins(value) {
+      localStorage.setItem("coins", value);
+      document.getElementById("coin-count").textContent = value;
+    }
+
+    function loadInventory() {
+      return JSON.parse(localStorage.getItem("inventory") || "[]");
+    }
+
+    function saveInventory(inventory) {
+      localStorage.setItem("inventory", JSON.stringify(inventory));
+    }
+
+    function updateInventoryUI() {
+      const list = document.getElementById("inventory-list");
+      const inventory = loadInventory();
+      list.innerHTML = "";
+
+      inventory.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = item.name;
+        li.className = item.rarity;
+        li.style.cursor = "pointer";
+        li.title = `Click to sell for ${sellValues[item.name] || 1} coins`;
+
+        li.onclick = () => {
+          if (confirm(`Sell "${item.name}" for ${sellValues[item.name] || 1} coins?`)) {
+            const updatedInventory = [...inventory];
+            updatedInventory.splice(index, 1);
+            saveInventory(updatedInventory);
+            updateInventoryUI();
+            setCoins(getCoins() + (sellValues[item.name] || 1));
+          }
+        };
+
+        list.appendChild(li);
+      });
+    }
+
+    function loadLeaderboard() {
+      return JSON.parse(localStorage.getItem("leaderboard") || "{}");
+    }
+
+    function saveLeaderboard(leaderboard) {
+      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+    }
+
+    function updateLeaderboardUI() {
+      const leaderboard = loadLeaderboard();
+      const sorted = Object.entries(leaderboard).sort((a, b) => b[1] - a[1]);
+      const list = document.getElementById("leaderboard-list");
+      list.innerHTML = "";
+      sorted.forEach(([user, count]) => {
+        const li = document.createElement("li");
+        li.textContent = `${user}: ${count} Legendary`;
+        list.appendChild(li);
+      });
+    }
+
+    function openLootBox(type) {
+      const result = document.getElementById("loot-result");
+      const box = boxes[type];
+      const currentCoins = getCoins();
+
+      if (currentCoins < box.cost) {
+        alert("Not enough coins!");
+        return;
+      }
+
+      setCoins(currentCoins - box.cost);
+      result.className = "loot-result spinning";
+      result.textContent = "Opening...";
+
+      setTimeout(() => {
+        const rand = Math.random();
+        const rarityIndex = getRarityIndex(rand, box.chances);
+        const possibleItems = items.filter(i => getRarityIndexFromName(i.rarity) === rarityIndex);
+        const item = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+
+        result.className = `loot-result ${item.rarity}`;
+        result.textContent = `You got: ${item.name}`;
+
+        const inventory = loadInventory();
+        inventory.push(item);
+        saveInventory(inventory);
+        updateInventoryUI();
+
+        if (item.rarity === "legendary") {
+          const leaderboard = loadLeaderboard();
+          leaderboard[username] = (leaderboard[username] || 0) + 1;
+          saveLeaderboard(leaderboard);
+          updateLeaderboardUI();
+        }
+      }, 1500);
+    }
+
+    function getRarityIndex(rand, chances) {
+      let cumulative = 0;
+      for (let i = 0; i < chances.length; i++) {
+        cumulative += chances[i];
+        if (rand < cumulative) return i;
+      }
+      return chances.length - 1;
+    }
+
+    function getRarityIndexFromName(rarity) {
+      return ["common", "rare", "epic", "legendary"].indexOf(rarity);
+    }
+
+    function exportInventory() {
+      const data = JSON.stringify(loadInventory(), null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "inventory.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importInventory(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            saveInventory(imported);
+            updateInventoryUI();
+            alert("Inventory imported!");
+          } else {
+            alert("Invalid inventory file.");
+          }
+        } catch {
+          alert("Failed to read file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Initialize
+    setCoins(getCoins());
+    updateInventoryUI();
+    updateLeaderboardUI();
+  </script>
+</body>
+</html>
