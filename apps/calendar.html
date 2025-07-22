@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendar Planner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+
+    .calendar {
+      text-align: center;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .day {
+      padding: 10px;
+      border: 1px solid #ccc;
+      min-height: 60px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .day:hover {
+      background-color: #f9f9f9;
+    }
+
+    .day .note {
+      display: block;
+      margin-top: 5px;
+      font-size: 0.85em;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .day[data-has-note="true"]:hover .note {
+      white-space: normal;
+      overflow: visible;
+    }
+
+    .today {
+      background-color: #e0f7fa;
+      font-weight: bold;
+    }
+
+    .weekdays {
+      background-color: #f0f0f0;
+      font-weight: bold;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calendar">
+  <div class="calendar-header">
+    <button onclick="changeMonth(-1)">◀</button>
+    <h2 id="monthYear"></h2>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+  <div class="calendar-grid" id="calendarGrid"></div>
+</div>
+
+<script>
+  const calendarGrid = document.getElementById('calendarGrid');
+  const monthYear = document.getElementById('monthYear');
+  const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let date = new Date();
+
+  function getKey(year, month, day) {
+    return `${year}-${month + 1}-${day}`;
+  }
+
+  function saveNote(key, text) {
+    const notes = JSON.parse(localStorage.getItem('calendarNotes') || '{}');
+    notes[key] = text;
+    localStorage.setItem('calendarNotes', JSON.stringify(notes));
+  }
+
+  function getNote(key) {
+    const notes = JSON.parse(localStorage.getItem('calendarNotes') || '{}');
+    return notes[key] || '';
+  }
+
+  function renderCalendar(currentDate) {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    monthYear.innerText = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+    calendarGrid.innerHTML = '';
+
+    // Add weekday headers
+    for (let i = 0; i < 7; i++) {
+      const day = document.createElement('div');
+      day.className = 'day weekdays';
+      day.innerText = weekdays[i];
+      calendarGrid.appendChild(day);
+    }
+
+    // Add blank days
+    for (let i = 0; i < firstDay; i++) {
+      const blank = document.createElement('div');
+      blank.className = 'day';
+      calendarGrid.appendChild(blank);
+    }
+
+    // Add day boxes
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dayBox = document.createElement('div');
+      dayBox.className = 'day';
+
+      const today = new Date();
+      if (i === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+        dayBox.classList.add('today');
+      }
+
+      const key = getKey(year, month, i);
+      const note = getNote(key);
+      dayBox.setAttribute('data-has-note', !!note);
+      dayBox.setAttribute('title', note);
+
+      dayBox.innerHTML = `<strong>${i}</strong>${note ? `<div class="note">${note}</div>` : ''}`;
+
+      dayBox.onclick = () => {
+        const newNote = prompt(`Enter note for ${key}`, note);
+        if (newNote !== null) {
+          saveNote(key, newNote);
+          renderCalendar(date);
+        }
+      };
+
+      calendarGrid.appendChild(dayBox);
+    }
+  }
+
+  function changeMonth(offset) {
+    date.setMonth(date.getMonth() + offset);
+    renderCalendar(date);
+  }
+
+  renderCalendar(date);
+</script>
+
+</body>
+</html>
